@@ -1,9 +1,8 @@
 /* 
 
-  Modified Factory firmware for HexBright FLEX 
-  Original Version - v2.4  Dec 6, 2012
-
   Modified to cycle through modes but allow direct shutoff after 2 seconds of idle button time.
+
+  This mimics the behavior of a petzl headlamp.
   
 */
 

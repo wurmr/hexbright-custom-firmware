@@ -65,45 +65,16 @@ void loop()
   static unsigned long lastTempTime;
   unsigned long time = millis();
   
-  // Check the state of the charge controller
-  int chargeState = analogRead(APIN_CHARGE);
-  if (chargeState < 128)  // Low - charging
-  {
-    digitalWrite(DPIN_GLED, (time&0x0100)?LOW:HIGH);
-  }
-  else if (chargeState > 768) // High - charged
-  {
-    digitalWrite(DPIN_GLED, HIGH);
-  }
-  else // Hi-Z - shutdown
-  {
-    digitalWrite(DPIN_GLED, LOW);    
-  }
-  
-  // Check the temperature sensor
+  checkChargeState(time);
+
+  // Check temp sensors
+  // TODO: Refactor this time logic out more
   if (time-lastTempTime > 1000)
   {
+    checkTemperature();
     lastTempTime = time;
-    int temperature = analogRead(APIN_TEMP);
-    Serial.print("Temp: ");
-    Serial.println(temperature);
-    if (temperature > OVERTEMP && mode != MODE_OFF)
-    {
-      Serial.println("Overheating!");
-
-      for (int i = 0; i < 6; i++)
-      {
-        digitalWrite(DPIN_DRV_MODE, LOW);
-        delay(100);
-        digitalWrite(DPIN_DRV_MODE, HIGH);
-        delay(100);
-      }
-      digitalWrite(DPIN_DRV_MODE, LOW);
-
-      mode = MODE_LOW;
-    }
   }
-  
+
   // Periodically pull down the button's pin, since
   // in certain hardware revisions it can float.
   pinMode(DPIN_RLED_SW, OUTPUT);
@@ -127,6 +98,49 @@ void loop()
   }
 }
 
+void checkChargeState(unsigned long time)
+{
+  // Check the state of the charge controller
+  int chargeState = analogRead(APIN_CHARGE);
+  if (chargeState < 128)  // Low - charging
+  {
+    digitalWrite(DPIN_GLED, (time&0x0100)?LOW:HIGH);
+  }
+  else if (chargeState > 768) // High - charged
+  {
+    digitalWrite(DPIN_GLED, HIGH);
+  }
+  else // Hi-Z - shutdown
+  {
+    digitalWrite(DPIN_GLED, LOW);    
+  }
+}
+
+// Handle overheating behavior and temp readouts
+void checkTemperature()
+{
+  // Check the temperature sensor
+  int temperature = analogRead(APIN_TEMP);
+  Serial.print("Temp: ");
+  Serial.println(temperature);
+  if (temperature > OVERTEMP && mode != MODE_OFF)
+  {
+    Serial.println("Overheating!");
+
+    for (int i = 0; i < 6; i++)
+    {
+      digitalWrite(DPIN_DRV_MODE, LOW);
+      delay(100);
+      digitalWrite(DPIN_DRV_MODE, HIGH);
+      delay(100);
+    }
+    digitalWrite(DPIN_DRV_MODE, LOW);
+
+    mode = MODE_LOW;
+  }
+}
+
+// Handle button press logic
 void buttonPressed(unsigned long timeSinceLastPress)
 {
   // Check to see if we've pressed in the last 2 seconds, if not then shutdown
@@ -155,6 +169,7 @@ void buttonPressed(unsigned long timeSinceLastPress)
   }
 }
 
+// Preform direct mode transitions
 void switchMode(byte newMode)
 {
   // Do the mode transitions
